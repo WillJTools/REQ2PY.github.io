@@ -306,15 +306,15 @@ function buildPythonScript(method, url, headers, cookies, body) {
   out += `elif "text/html" in content_type:\n`;
   out += `    try:\n`;
   out += `        from bs4 import BeautifulSoup\n`;
-  out += `        print("\\n[+] HTML Response (Preview):\\n")\n`;
+  out += `        print("\\n[+] HTML Response:\\n")\n`;
   out += `        soup = BeautifulSoup(response.text, "html.parser")\n`;
-  out += `        print(soup.prettify()[:1000])  # Print first 1000 characters for readability\n`;
+  out += `        print(soup.prettify())\n`;
   out += `    except ImportError:\n`;
-  out += `        print("\\n[+] HTML Response (Install BeautifulSoup for better formatting):\\n")\n`;
-  out += `        print(response.text[:1000])  # Print first 1000 characters to avoid flooding output\n`;
+  out += `        print("\\n[+] HTML Response:\\n")\n`;
+  out += `        print(response.text)\n`;
   out += `else:\n`;
   out += `    print("\\n[+] Raw Response:\\n")\n`;
-  out += `    print(response.text[:1000])  # Print first 1000 characters to avoid flooding output\n`;
+  out += `    print(response.text)\n`;
 
   return out;
 }
