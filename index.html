@@ -1,96 +1,185 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REQ2PY - Convert Requests to Python</title>
-    <script src="req2py.obfuscated.js" defer></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            color: #333;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 800px;
-            margin: 40px auto;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            font-size: 2rem;
-            color: #0056b3;
-        }
-        p {
-            color: #666;
-        }
-        textarea {
-            width: 100%;
-            height: 150px;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            resize: none;
-            font-size: 14px;
-        }
-        .buttons {
-            display: flex;
-            justify-content: center;
-            margin-top: 15px;
-        }
-        button {
-            padding: 10px 20px;
-            margin: 10px;
-            border: none;
-            border-radius: 4px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        #convertButton {
-            background-color: #007bff;
-            color: white;
-        }
-        #convertButton:hover {
-            background-color: #0056b3;
-        }
-        #copyButton {
-            background-color: #28a745;
-            color: white;
-        }
-        #copyButton:hover {
-            background-color: #218838;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>REQ2PY - Convert Requests to Python</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="req2py.js" defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #0d1117;
+      color: #c9d1d9;
+      min-height: 100vh;
+      padding: 40px 16px;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    header h1 {
+      font-size: 2.4rem;
+      color: #58a6ff;
+      letter-spacing: 2px;
+    }
+
+    header p {
+      color: #8b949e;
+      margin-top: 6px;
+    }
+
+    .panel {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+
+    .panel label {
+      display: block;
+      font-size: 0.85rem;
+      color: #8b949e;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 180px;
+      background: #0d1117;
+      color: #c9d1d9;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus {
+      border-color: #58a6ff;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    button:hover { opacity: 0.85; }
+
+    #convertButton {
+      background: #238636;
+      color: #fff;
+    }
+
+    #copyButton {
+      background: #1f6feb;
+      color: #fff;
+    }
+
+    /* Syntax-highlighted output */
+    .output-wrapper {
+      position: relative;
+    }
+
+    #codeOutput {
+      display: block;
+      width: 100%;
+      min-height: 180px;
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      white-space: pre;
+      color: #c9d1d9;
+    }
+
+    /* hidden textarea used for copy fallback */
+    #pythonScript {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 1px;
+      height: 1px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      background: #21262d;
+      border: 1px solid #30363d;
+      border-radius: 4px;
+      padding: 2px 8px;
+      color: #8b949e;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
+
+    footer {
+      text-align: center;
+      color: #484f58;
+      font-size: 12px;
+      margin-top: 32px;
+    }
+  </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>REQ2PY</h1>
-        <p>Turn Web Requests into Secure Python Instantly</p>
-        
-        <div>
-            <h3>Paste Web Request or cURL</h3>
-            <textarea id="webRequest" placeholder="Paste your web request here..."></textarea>
-        </div>
+  <div class="container">
+    <header>
+      <h1>REQ2PY</h1>
+      <p>Turn raw HTTP requests or cURL commands into Python scripts instantly</p>
+    </header>
 
-        <div class="buttons">
-            <button id="convertButton">CONVERT</button>
-        </div>
-
-        <div>
-            <h3>Generated Python Script</h3>
-            <textarea id="pythonScript" readonly placeholder="Your Python script will appear here..."></textarea>
-        </div>
-
-        <div class="buttons">
-            <button id="copyButton">COPY CODE</button>
-        </div>
+    <div class="panel">
+      <label>Paste Web Request or cURL <span class="badge">Burp Suite / cURL</span></label>
+      <textarea id="webRequest" placeholder="POST /api/login HTTP/1.1&#10;Host: example.com&#10;Content-Type: application/json&#10;&#10;{&quot;username&quot;: &quot;test&quot;}"></textarea>
     </div>
+
+    <div class="actions">
+      <button id="convertButton">▶ Convert</button>
+      <button id="copyButton">⎘ Copy Code</button>
+    </div>
+
+    <div class="panel">
+      <label>Generated Python Script</label>
+      <div class="output-wrapper">
+        <code id="codeOutput" class="language-python"></code>
+        <textarea id="pythonScript" readonly aria-hidden="true"></textarea>
+      </div>
+    </div>
+
+    <footer>REQ2PY &mdash; client-side only, nothing is sent to any server</footer>
+  </div>
 
 </body>
 </html>
