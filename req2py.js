@@ -149,24 +149,68 @@ function convertCurl(raw) {
   const cmd = raw.replace(/\\\n/g, ' ').replace(/\s+/g, ' ').trim();
 
   const method  = (cmd.match(/-X\s+([A-Z]+)/i) || [])[1]?.toUpperCase() || 'GET';
-  const urlMatch = cmd.match(/curl\s+(?:[^\s]+\s+)*['"]?(https?:\/\/[^\s'"]+)['"]?/i);
-  if (!urlMatch) {
+
+  // Extract URL: tokenize the command and find the first http(s) argument
+  // that isn't the value of a flag like -H, -d, -u, -o, etc.
+  function extractCurlUrl(cmd) {
+    const flagsWithValues = new Set([
+      '-H', '--header', '-d', '--data', '--data-raw', '--data-binary',
+      '-u', '--user', '-o', '--output', '-e', '--referer', '-A', '--user-agent',
+      '-x', '--proxy', '-X', '--request', '-F', '--form', '--cacert', '--cert',
+      '--key', '--connect-to', '--resolve', '-b', '--cookie', '--cookie-jar',
+    ]);
+    // Simple tokenizer: split on spaces but respect single and double quotes
+    const tokens = [];
+    let cur = '';
+    let inSingle = false, inDouble = false;
+    for (let i = 0; i < cmd.length; i++) {
+      const c = cmd[i];
+      if (c === "'" && !inDouble) { inSingle = !inSingle; }
+      else if (c === '"' && !inSingle) { inDouble = !inDouble; }
+      else if (c === ' ' && !inSingle && !inDouble) {
+        if (cur) { tokens.push(cur); cur = ''; }
+      } else {
+        cur += c;
+      }
+    }
+    if (cur) tokens.push(cur);
+
+    // Skip 'curl', then walk tokens skipping flag+value pairs
+    let i = 1;
+    while (i < tokens.length) {
+      const t = tokens[i];
+      if (flagsWithValues.has(t)) {
+        i += 2; // skip flag and its value
+      } else if (t.startsWith('-')) {
+        i += 1; // boolean flag
+      } else if (t.startsWith('http://') || t.startsWith('https://')) {
+        return t;
+      } else {
+        i += 1;
+      }
+    }
+    return null;
+  }
+
+  const url = extractCurlUrl(cmd);
+  if (!url) {
     return "# ⚠️ Error: Could not parse URL from cURL command.\nprint('Invalid cURL format.')";
   }
-  const url = urlMatch[1];
 
   const headers = {};
   const cookies = {};
   let   body    = null;
 
-  // Extract headers: -H "Name: Value"
-  const headerRe = /-H\s+['"]([^'"]+)['"]/g;
+  // Extract headers: -H 'Name: Value' or -H "Name: Value"
+  // Use separate regexes for single and double quoted to avoid cross-contamination
+  const headerRe = /-H\s+(?:'([^']*)'|"([^"]*)")/g;
   let hm;
   while ((hm = headerRe.exec(cmd)) !== null) {
-    const eqIdx = hm[1].indexOf(':');
+    const raw = hm[1] ?? hm[2]; // single or double quoted
+    const eqIdx = raw.indexOf(':');
     if (eqIdx === -1) continue;
-    const name  = hm[1].slice(0, eqIdx).trim();
-    const value = hm[1].slice(eqIdx + 1).trim();
+    const name  = raw.slice(0, eqIdx).trim();
+    const value = raw.slice(eqIdx + 1).trim();
     if (name.toLowerCase() === 'cookie') {
       value.split(/;\s*/).forEach(pair => {
         const idx = pair.indexOf('=');
