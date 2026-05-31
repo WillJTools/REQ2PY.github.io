@@ -37,6 +37,18 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Headers that cause problems when replaying requests in Python:
+// - If-None-Match / If-Modified-Since: trigger 304 Not Modified (empty body)
+// - Accept-Encoding: gzip/br: causes garbled binary response (requests doesn't auto-decompress)
+// - Accept-Encoding is replaced with identity below
+const STRIP_HEADERS = new Set([
+  'if-none-match',
+  'if-modified-since',
+  'if-match',
+  'if-unmodified-since',
+  'if-range',
+]);
+
 /**
  * Sanitize input - strip script tags and event handlers
  */
@@ -117,6 +129,10 @@ function convertHttpRequest(raw) {
           catch { cookies[k] = v; }
         }
       });
+    } else if (STRIP_HEADERS.has(lower)) {
+      // skip - these cause 304s or other replay issues
+    } else if (lower === 'accept-encoding') {
+      headers[name] = 'identity'; // prevent compressed/garbled responses
     } else {
       headers[name] = value;
     }
@@ -222,6 +238,10 @@ function convertCurl(raw) {
           catch { cookies[k] = v; }
         }
       });
+    } else if (STRIP_HEADERS.has(name.toLowerCase())) {
+      // skip - these cause 304s or other replay issues
+    } else if (name.toLowerCase() === 'accept-encoding') {
+      headers[name] = 'identity'; // prevent compressed/garbled responses
     } else {
       headers[name] = value;
     }
